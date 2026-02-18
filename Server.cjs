@@ -2,7 +2,7 @@ require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") }
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-const mysql = require("mysql2/promise"); // Use mysql2/promise for async/await
+const { Pool } = require("pg");
 const zlib = require("zlib");
 const { promisify } = require("util");
 const gunzip = promisify(zlib.gunzip);
@@ -55,23 +55,22 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../", "index.html"));
 });
 
-// Connection Pool setup (using mysql2/promise)
-const pool = mysql.createPool({
+// Connection Pool setup (using pg)
+const pool = new Pool({
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "Root12345@",
   database: process.env.DB_NAME || "global_map_tiles",
-  port: parseInt(process.env.DB_PORT || "3306"),
-  waitForConnections: true,
-  connectionLimit: 5,
-  queueLimit: 0,
-  ssl: process.env.DB_HOST ? {} : undefined,
+  port: parseInt(process.env.DB_PORT || "5432"),
+  max: 5,
+  ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : undefined,
 });
 
 // Prevent pool errors from crashing the process
 pool.on('error', (err) => {
-  console.error('MySQL pool error:', err);
+  console.error('PostgreSQL pool error:', err);
 });
+
 app.get("/closestBbox", async (req, res) => {
     try {
         console.log("[closestBbox] Searching for closest bbox...");
@@ -82,12 +81,12 @@ app.get("/closestBbox", async (req, res) => {
         console.log(`[closestBbox] User location: ${userLat}, ${userLon}`);
 
         const tQuery = Date.now();
-        const [closestTile] = await pool.execute(
+        const { rows: closestTile } = await pool.query(
             `SELECT *,
-        POW(minLat - ?, 2) + POW(minLon - ?, 2) as distance
+        POW("minLat" - $1, 2) + POW("minLon" - $2, 2) as distance
        FROM bounding_boxes
        ORDER BY distance ASC
-       LIMIT 1;`,
+       LIMIT 1`,
             [userLat, userLon]
         );
         console.log(`[closestBbox] DB query: ${Date.now() - tQuery}ms`);
@@ -112,18 +111,17 @@ async function getLandUseDataForBoxes(boundingBoxes) {
   // Prepare the list of box IDs
   const boxIds = boundingBoxes.map((box) => box.id);
 
-  // SQL query to fetch land use data for multiple bounding boxes
+  // Build parameterized placeholders ($1, $2, ...)
+  const placeholders = boxIds.map((_, i) => `$${i + 1}`).join(',');
+
   const query = `
-  SELECT id, landuseType, land_use_data
+  SELECT id, "landuseType", land_use_data
   FROM bounding_boxes
-  WHERE id IN (?);
+  WHERE id IN (${placeholders})
 `;
 
-    const [rows] = await pool.query(query, boxIds);
-
   try {
-    // Execute the query with a single database connection
-    const [rows] = await pool.query(query, [boxIds]);
+    const { rows } = await pool.query(query, boxIds);
     console.log("Rows from DB:", rows);
 
     // Format the result in the required structure
@@ -181,15 +179,15 @@ app.post("/saveTile", async (req, res) => {
     // Insert or update tile (geographic ID makes tiles shareable across users)
     const insertQuery = `
       INSERT INTO bounding_boxes (
-        id, minLat, minLon, maxLat, maxLon, landuseType, land_use_data
+        id, "minLat", "minLon", "maxLat", "maxLon", "landuseType", land_use_data
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        landuseType=VALUES(landuseType),
-        land_use_data=VALUES(land_use_data)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (id) DO UPDATE SET
+        "landuseType" = EXCLUDED."landuseType",
+        land_use_data = EXCLUDED.land_use_data
     `;
 
-    await pool.execute(insertQuery, [
+    await pool.query(insertQuery, [
       id,
       minLat,
       minLon,
@@ -216,10 +214,10 @@ app.get("/getTile", async (req, res) => {
       return res.status(400).json({ error: "Missing tile ID" });
     }
 
-    const [rows] = await pool.query(
-      `SELECT id, landuseType, land_use_data
+    const { rows } = await pool.query(
+      `SELECT id, "landuseType", land_use_data
        FROM bounding_boxes
-       WHERE id = ?
+       WHERE id = $1
        LIMIT 1`,
       [tileId]
     );
@@ -260,10 +258,10 @@ app.post("/getTilesBatch", async (req, res) => {
 
     console.log(`📊 Batch checking ${limitedIds.length} tiles in database...`);
 
-    // Use IN clause for efficient batch lookup
-    const placeholders = limitedIds.map(() => '?').join(',');
-    const [rows] = await pool.query(
-      `SELECT id, landuseType, land_use_data, epa_data, has_epa_data, epa_fetch_date,
+    // Use IN clause with parameterized placeholders
+    const placeholders = limitedIds.map((_, i) => `$${i + 1}`).join(',');
+    const { rows } = await pool.query(
+      `SELECT id, "landuseType", land_use_data, epa_data, has_epa_data, epa_fetch_date,
               elevation, waterway_data, airport_data
        FROM bounding_boxes
        WHERE id IN (${placeholders})`,
@@ -333,39 +331,74 @@ app.post("/saveTilesBatch", async (req, res) => {
       console.log(`📊 EPA data: ${JSON.stringify(epaTile.epa_data).substring(0, 200)}...`);
     }
 
-    // Build batch insert with ON DUPLICATE KEY UPDATE (including EPA, elevation, waterway, airport data)
-    const values = tiles.map(t => [
-      t.id,
-      t.minLat,
-      t.minLon,
-      t.maxLat,
-      t.maxLon,
-      t.landuseType,
-      t.land_use_data,
-      t.epa_data ? JSON.stringify(t.epa_data) : null,
-      t.epa_data ? true : false,
-      t.epa_data ? new Date() : null,
-      t.elevation !== undefined && t.elevation !== null ? t.elevation : null,
-      t.waterway_data ? JSON.stringify(t.waterway_data) : null,
-      t.airport_data ? JSON.stringify(t.airport_data) : null
-    ]);
+    // PostgreSQL batch insert using unnest for efficiency
+    // Build arrays for each column
+    const ids = [];
+    const minLats = [];
+    const minLons = [];
+    const maxLats = [];
+    const maxLons = [];
+    const landuseTypes = [];
+    const landUseDatas = [];
+    const epaDatas = [];
+    const hasEpaDatas = [];
+    const epaFetchDates = [];
+    const elevations = [];
+    const waterwayDatas = [];
+    const airportDatas = [];
 
-    const [result] = await pool.query(
-      `INSERT INTO bounding_boxes (id, minLat, minLon, maxLat, maxLon, landuseType, land_use_data, epa_data, has_epa_data, epa_fetch_date, elevation, waterway_data, airport_data)
-       VALUES ?
-       ON DUPLICATE KEY UPDATE
-         landuseType=VALUES(landuseType),
-         land_use_data=VALUES(land_use_data),
-         epa_data=VALUES(epa_data),
-         has_epa_data=VALUES(has_epa_data),
-         epa_fetch_date=VALUES(epa_fetch_date),
-         elevation=VALUES(elevation),
-         waterway_data=VALUES(waterway_data),
-         airport_data=VALUES(airport_data)`,
-      [values]
-    );
+    for (const t of tiles) {
+      ids.push(t.id);
+      minLats.push(t.minLat);
+      minLons.push(t.minLon);
+      maxLats.push(t.maxLat);
+      maxLons.push(t.maxLon);
+      landuseTypes.push(t.landuseType);
+      landUseDatas.push(t.land_use_data);
+      epaDatas.push(t.epa_data ? JSON.stringify(t.epa_data) : null);
+      hasEpaDatas.push(t.epa_data ? true : false);
+      epaFetchDates.push(t.epa_data ? new Date().toISOString() : null);
+      elevations.push(t.elevation !== undefined && t.elevation !== null ? t.elevation : null);
+      waterwayDatas.push(t.waterway_data ? JSON.stringify(t.waterway_data) : null);
+      airportDatas.push(t.airport_data ? JSON.stringify(t.airport_data) : null);
+    }
 
-    console.log(`✅ Saved ${tiles.length} tiles - affectedRows: ${result.affectedRows}, changedRows: ${result.changedRows}`);
+    // Build individual INSERT statements within a transaction for reliability
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      for (let i = 0; i < tiles.length; i++) {
+        await client.query(
+          `INSERT INTO bounding_boxes (
+            id, "minLat", "minLon", "maxLat", "maxLon", "landuseType", land_use_data,
+            epa_data, has_epa_data, epa_fetch_date, elevation, waterway_data, airport_data
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          ON CONFLICT (id) DO UPDATE SET
+            "landuseType" = EXCLUDED."landuseType",
+            land_use_data = EXCLUDED.land_use_data,
+            epa_data = EXCLUDED.epa_data,
+            has_epa_data = EXCLUDED.has_epa_data,
+            epa_fetch_date = EXCLUDED.epa_fetch_date,
+            elevation = EXCLUDED.elevation,
+            waterway_data = EXCLUDED.waterway_data,
+            airport_data = EXCLUDED.airport_data`,
+          [ids[i], minLats[i], minLons[i], maxLats[i], maxLons[i], landuseTypes[i],
+           landUseDatas[i], epaDatas[i], hasEpaDatas[i], epaFetchDates[i],
+           elevations[i], waterwayDatas[i], airportDatas[i]]
+        );
+      }
+
+      await client.query('COMMIT');
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      throw txError;
+    } finally {
+      client.release();
+    }
+
+    console.log(`✅ Saved ${tiles.length} tiles`);
     res.json({ success: true, count: tiles.length });
   } catch (error) {
     console.error("Error in /saveTilesBatch:", error);
@@ -385,10 +418,10 @@ app.get("/checkMap", async (req, res) => {
 
     console.log(`🔍 Checking for saved map at ${lat}, ${lon}...`);
 
-    const [rows] = await pool.query(
-      `SELECT id, lat, lon, gridWidth, gridHeight, tiles, landUseInfo, created_at
+    const { rows } = await pool.query(
+      `SELECT id, lat, lon, "gridWidth", "gridHeight", tiles, "landUseInfo", created_at
        FROM saved_maps
-       WHERE lat = ? AND lon = ?
+       WHERE lat = $1 AND lon = $2
        LIMIT 1`,
       [lat, lon]
     );
@@ -439,13 +472,13 @@ app.post("/saveMap", express.raw({ type: 'application/octet-stream', limit: '20m
 
     // Insert or update the map
     await pool.query(
-      `INSERT INTO saved_maps (lat, lon, gridWidth, gridHeight, tiles, landUseInfo)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         gridWidth = VALUES(gridWidth),
-         gridHeight = VALUES(gridHeight),
-         tiles = VALUES(tiles),
-         landUseInfo = VALUES(landUseInfo)`,
+      `INSERT INTO saved_maps (lat, lon, "gridWidth", "gridHeight", tiles, "landUseInfo")
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (lat, lon) DO UPDATE SET
+         "gridWidth" = EXCLUDED."gridWidth",
+         "gridHeight" = EXCLUDED."gridHeight",
+         tiles = EXCLUDED.tiles,
+         "landUseInfo" = EXCLUDED."landUseInfo"`,
       [lat, lon, gridWidth, gridHeight, JSON.stringify(tiles), JSON.stringify(landUseInfo || {})]
     );
 
@@ -487,10 +520,10 @@ app.post("/elevation", async (req, res) => {
       return res.status(response.status).json({ error: `Upstream error: ${response.status}` });
     }
 
-    const data = await response.json();
-    console.log(`✅ Elevation received for ${data.results?.length || 0} points`);
+    const result = await response.json();
+    console.log(`✅ Elevation received for ${result.results?.length || 0} points`);
 
-    res.json(data);
+    res.json(result);
   } catch (error) {
     console.error("Error in /elevation:", error);
     res.status(500).json({ error: error.message });
@@ -682,18 +715,18 @@ app.get("/proxy", async (req, res) => {
     }
 
     // Stream the response body
-    const data = await response.text();
-    console.log(`✅ Proxy success: ${data.length} bytes from ${url.hostname}`);
+    const responseData = await response.text();
+    console.log(`✅ Proxy success: ${responseData.length} bytes from ${url.hostname}`);
 
     // Try to parse as JSON if it looks like JSON
-    if (contentType?.includes('json') || data.trim().startsWith('[') || data.trim().startsWith('{')) {
+    if (contentType?.includes('json') || responseData.trim().startsWith('[') || responseData.trim().startsWith('{')) {
       try {
-        res.json(JSON.parse(data));
+        res.json(JSON.parse(responseData));
       } catch {
-        res.send(data);
+        res.send(responseData);
       }
     } else {
-      res.send(data);
+      res.send(responseData);
     }
   } catch (error) {
     console.error("Error in /proxy:", error);
