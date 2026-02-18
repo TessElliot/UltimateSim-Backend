@@ -56,15 +56,20 @@ app.get("/", (req, res) => {
 });
 
 // Connection Pool setup (using pg)
-const pool = new Pool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "Root12345@",
-  database: process.env.DB_NAME || "global_map_tiles",
-  port: parseInt(process.env.DB_PORT || "5432"),
-  max: 5,
-  ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : undefined,
-});
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 5,
+      ssl: process.env.DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : undefined,
+    })
+  : new Pool({
+      host: process.env.DB_HOST || "localhost",
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASSWORD || "Root12345@",
+      database: process.env.DB_NAME || "global_map_tiles",
+      port: parseInt(process.env.DB_PORT || "5432"),
+      max: 5,
+    });
 
 // Prevent pool errors from crashing the process
 pool.on('error', (err) => {
