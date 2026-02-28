@@ -267,7 +267,7 @@ app.post("/getTilesBatch", async (req, res) => {
     const placeholders = limitedIds.map((_, i) => `$${i + 1}`).join(',');
     const { rows } = await pool.query(
       `SELECT id, "landuseType", land_use_data, epa_data, has_epa_data, epa_fetch_date,
-              elevation, waterway_data, airport_data
+              elevation, waterway_data, airport_data, egrid_data
        FROM bounding_boxes
        WHERE id IN (${placeholders})`,
       limitedIds
@@ -300,6 +300,10 @@ app.post("/getTilesBatch", async (req, res) => {
         // Include airport data if present
         if (row.airport_data) {
           tile.airportData = JSON.parse(row.airport_data);
+        }
+        // Include eGRID data if present
+        if (row.egrid_data) {
+          tile.egridData = JSON.parse(row.egrid_data);
         }
         tilesMap[row.id] = tile;
       } catch (parseError) {
@@ -351,6 +355,7 @@ app.post("/saveTilesBatch", async (req, res) => {
     const elevations = [];
     const waterwayDatas = [];
     const airportDatas = [];
+    const egridDatas = [];
 
     for (const t of tiles) {
       ids.push(t.id);
@@ -366,6 +371,7 @@ app.post("/saveTilesBatch", async (req, res) => {
       elevations.push(t.elevation !== undefined && t.elevation !== null ? t.elevation : null);
       waterwayDatas.push(t.waterway_data ? JSON.stringify(t.waterway_data) : null);
       airportDatas.push(t.airport_data ? JSON.stringify(t.airport_data) : null);
+      egridDatas.push(t.egrid_data ? JSON.stringify(t.egrid_data) : null);
     }
 
     // Build individual INSERT statements within a transaction for reliability
@@ -377,9 +383,9 @@ app.post("/saveTilesBatch", async (req, res) => {
         await client.query(
           `INSERT INTO bounding_boxes (
             id, "minLat", "minLon", "maxLat", "maxLon", "landuseType", land_use_data,
-            epa_data, has_epa_data, epa_fetch_date, elevation, waterway_data, airport_data
+            epa_data, has_epa_data, epa_fetch_date, elevation, waterway_data, airport_data, egrid_data
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
           ON CONFLICT (id) DO UPDATE SET
             "landuseType" = EXCLUDED."landuseType",
             land_use_data = EXCLUDED.land_use_data,
@@ -388,10 +394,11 @@ app.post("/saveTilesBatch", async (req, res) => {
             epa_fetch_date = EXCLUDED.epa_fetch_date,
             elevation = EXCLUDED.elevation,
             waterway_data = EXCLUDED.waterway_data,
-            airport_data = EXCLUDED.airport_data`,
+            airport_data = EXCLUDED.airport_data,
+            egrid_data = EXCLUDED.egrid_data`,
           [ids[i], minLats[i], minLons[i], maxLats[i], maxLons[i], landuseTypes[i],
            landUseDatas[i], epaDatas[i], hasEpaDatas[i], epaFetchDates[i],
-           elevations[i], waterwayDatas[i], airportDatas[i]]
+           elevations[i], waterwayDatas[i], airportDatas[i], egridDatas[i]]
         );
       }
 
