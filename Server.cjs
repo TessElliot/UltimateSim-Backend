@@ -744,6 +744,44 @@ app.get("/proxy", async (req, res) => {
 // =====================================================
 
 // =====================================================
+// EGRID POWER PLANT DATA (EPA eGRID, plant-level)
+// =====================================================
+
+// GET /egrid?minLat=&minLon=&maxLat=&maxLon=
+// Returns all eGRID plants within the given bounding box (queried from PostgreSQL)
+app.get('/egrid', async (req, res) => {
+    const minLat = parseFloat(req.query.minLat);
+    const minLon = parseFloat(req.query.minLon);
+    const maxLat = parseFloat(req.query.maxLat);
+    const maxLon = parseFloat(req.query.maxLon);
+
+    if (isNaN(minLat) || isNaN(minLon) || isNaN(maxLat) || isNaN(maxLon)) {
+        return res.status(400).json({ error: 'Missing or invalid bbox params: minLat, minLon, maxLat, maxLon' });
+    }
+
+    try {
+        const { rows } = await pool.query(
+            `SELECT id, name, state, lat, lon,
+                    fuel_code AS "fuelCode", fuel_type AS "fuelType",
+                    co2_metric_tons AS "co2MetricTons",
+                    mwh_gen AS "mwhGen", cap_mw AS "capMW"
+             FROM egrid_plants
+             WHERE lat >= $1 AND lat < $2
+               AND lon >= $3 AND lon < $4`,
+            [minLat, maxLat, minLon, maxLon]
+        );
+        res.json({ plants: rows });
+    } catch (err) {
+        // Table may not exist yet (before migration runs)
+        if (err.code === '42P01') {
+            return res.json({ plants: [] });
+        }
+        console.error('eGRID query error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// =====================================================
 // DATABASE ADMIN ENDPOINTS
 // =====================================================
 
