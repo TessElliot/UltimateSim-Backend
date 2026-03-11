@@ -610,6 +610,26 @@ app.post("/waterways", async (req, res) => {
     // Combine all features
     const allFeatures = results.flatMap(r => r.features || []);
 
+    // Normalize attribute keys to lowercase — Layers 4/9/10/12 use UPPERCASE
+    // field names (GNIS_NAME, FTYPE, FCODE) while Layer 6 uses lowercase.
+    // Also convert string FTYPE values to integers (Layer 10 returns "LakePond" instead of 390).
+    const FTYPE_STRING_TO_INT = {
+      'LakePond': 390, 'Reservoir': 436, 'SwampMarsh': 466, 'Estuary': 493,
+      'StreamRiver': 460, 'Canal': 336, 'Coastline': 566, 'Ice Mass': 378,
+      'Playa': 361, 'Wash': 484, 'Inundation Area': 307,
+    };
+    for (const feature of allFeatures) {
+      if (!feature.attributes) continue;
+      const normalized = {};
+      for (const [key, value] of Object.entries(feature.attributes)) {
+        normalized[key.toLowerCase()] = value;
+      }
+      if (typeof normalized.ftype === 'string') {
+        normalized.ftype = FTYPE_STRING_TO_INT[normalized.ftype] ?? normalized.ftype;
+      }
+      feature.attributes = normalized;
+    }
+
     console.log(`✅ Waterways received: ${allFeatures.length} features (rivers_small: ${results[0].features?.length || 0}, rivers_detailed: ${results[1].features?.length || 0}, waterbodies: ${results[2].features?.length || 0}, waterbodies_detailed: ${results[3].features?.length || 0}, areas: ${results[4].features?.length || 0})`);
 
     res.json({ features: allFeatures });
