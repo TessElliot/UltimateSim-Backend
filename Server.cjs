@@ -565,16 +565,18 @@ app.post("/waterways", async (req, res) => {
     const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
     const baseUrl = 'https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer';
 
-    // Layers to query:
-    // Layer 1 = Small Scale Flowlines (continental-scale major rivers)
-    // Layer 3 = Small Scale Polygons (major water bodies)
-    // Layer 5 = Large Scale Areas (swamps, inundation areas)
-    // Layer 6 = Large Scale Flowlines (detailed rivers, streams - includes Hudson River etc.)
+    // Layers to query (NHD MapServer):
+    // Layer 4  = Flowline - Small Scale (continental-scale major rivers)
+    // Layer 6  = Flowline - Large Scale (detailed rivers, streams, coastline)
+    // Layer 9  = Area - Large Scale (swamps, inundation areas)
+    // Layer 10 = Waterbody - Small Scale (major water bodies)
+    // Layer 12 = Waterbody - Large Scale (detailed lakes, lagoons, reservoirs)
     const layers = [
-      { id: 1, name: 'rivers', fields: 'OBJECTID,gnis_name,ftype,fcode,lengthkm,reachcode' },
+      { id: 4, name: 'rivers', fields: 'OBJECTID,gnis_name,ftype,fcode,lengthkm,reachcode' },
       { id: 6, name: 'rivers_detailed', fields: 'OBJECTID,gnis_name,ftype,fcode,lengthkm,reachcode' },
-      { id: 3, name: 'waterbodies', fields: 'OBJECTID,gnis_name,ftype,fcode,areasqkm' },
-      { id: 5, name: 'areas', fields: 'OBJECTID,gnis_name,ftype,fcode,areasqkm' }
+      { id: 10, name: 'waterbodies', fields: 'OBJECTID,gnis_name,ftype,fcode,areasqkm' },
+      { id: 12, name: 'waterbodies_detailed', fields: 'OBJECTID,gnis_name,ftype,fcode,areasqkm' },
+      { id: 9, name: 'areas', fields: 'OBJECTID,gnis_name,ftype,fcode,areasqkm' }
     ];
 
     console.log(`🌊 Fetching waterways for bbox: ${bbox}`);
@@ -608,7 +610,7 @@ app.post("/waterways", async (req, res) => {
     // Combine all features
     const allFeatures = results.flatMap(r => r.features || []);
 
-    console.log(`✅ Waterways received: ${allFeatures.length} features (rivers_small: ${results[0].features?.length || 0}, rivers_detailed: ${results[1].features?.length || 0}, waterbodies: ${results[2].features?.length || 0}, areas: ${results[3].features?.length || 0})`);
+    console.log(`✅ Waterways received: ${allFeatures.length} features (rivers_small: ${results[0].features?.length || 0}, rivers_detailed: ${results[1].features?.length || 0}, waterbodies: ${results[2].features?.length || 0}, waterbodies_detailed: ${results[3].features?.length || 0}, areas: ${results[4].features?.length || 0})`);
 
     res.json({ features: allFeatures });
   } catch (error) {
