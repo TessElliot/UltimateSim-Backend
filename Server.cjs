@@ -220,7 +220,8 @@ app.get("/getTile", async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `SELECT id, "landuseType", land_use_data
+      `SELECT id, "landuseType", land_use_data, epa_data, has_epa_data, epa_fetch_date,
+              elevation, waterway_data, airport_data, egrid_data
        FROM bounding_boxes
        WHERE id = $1
        LIMIT 1`,
@@ -228,14 +229,32 @@ app.get("/getTile", async (req, res) => {
     );
 
     if (rows.length > 0) {
-      res.json({
-        exists: true,
-        tile: {
-          id: rows[0].id,
-          landuseType: rows[0].landuseType,
-          landUseData: JSON.parse(rows[0].land_use_data)
-        }
-      });
+      const row = rows[0];
+      const tile = {
+        id: row.id,
+        landuseType: row.landuseType,
+        landUseData: JSON.parse(row.land_use_data)
+      };
+      if (row.has_epa_data && row.epa_data) {
+        tile.epaData = JSON.parse(row.epa_data);
+        tile.hasEpaData = true;
+        tile.epaFetchDate = row.epa_fetch_date;
+      } else {
+        tile.hasEpaData = false;
+      }
+      if (row.elevation !== null) {
+        tile.elevation = row.elevation;
+      }
+      if (row.waterway_data) {
+        tile.waterwayData = JSON.parse(row.waterway_data);
+      }
+      if (row.airport_data) {
+        tile.airportData = JSON.parse(row.airport_data);
+      }
+      if (row.egrid_data) {
+        tile.egridData = JSON.parse(row.egrid_data);
+      }
+      res.json({ exists: true, tile });
     } else {
       res.json({ exists: false });
     }
