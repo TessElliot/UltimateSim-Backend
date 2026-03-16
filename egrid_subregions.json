@@ -1,0 +1,371 @@
+{
+  "generated": "2026-03-16T00:05:44.449Z",
+  "source": "EPA eGRID 2023",
+  "count": 27,
+  "subregions": {
+    "AKGD": {
+      "name": "ASCC Alaska Grid",
+      "mix": {
+        "coal": 0.1,
+        "oil": 0.1,
+        "gas": 0.6,
+        "hydro": 0.1,
+        "biomass": 0,
+        "wind": 0
+      },
+      "co2RateLbPerMwh": 899.6
+    },
+    "AKMS": {
+      "name": "ASCC Miscellaneous",
+      "mix": {
+        "oil": 0.2,
+        "gas": 0.1,
+        "hydro": 0.7,
+        "wind": 0
+      },
+      "co2RateLbPerMwh": 520.5
+    },
+    "AZNM": {
+      "name": "WECC Southwest",
+      "mix": {
+        "coal": 0.1,
+        "gas": 0.5,
+        "nuclear": 0.2,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0.1,
+        "geothermal": 0
+      },
+      "co2RateLbPerMwh": 703.7
+    },
+    "CAMX": {
+      "name": "WECC California",
+      "mix": {
+        "coal": 0,
+        "gas": 0.4,
+        "nuclear": 0.1,
+        "hydro": 0.1,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0.2,
+        "geothermal": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 428.5
+    },
+    "ERCT": {
+      "name": "ERCOT All",
+      "mix": {
+        "coal": 0.1,
+        "gas": 0.5,
+        "nuclear": 0.1,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.2,
+        "solar": 0.1,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 733.9
+    },
+    "FRCC": {
+      "name": "FRCC All",
+      "mix": {
+        "coal": 0,
+        "oil": 0,
+        "gas": 0.8,
+        "nuclear": 0.1,
+        "hydro": 0,
+        "biomass": 0,
+        "solar": 0.1,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 782.3
+    },
+    "HIMS": {
+      "name": "HICC Miscellaneous",
+      "mix": {
+        "oil": 0.7,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0.1,
+        "geothermal": 0.1
+      },
+      "co2RateLbPerMwh": 1123.4
+    },
+    "HIOA": {
+      "name": "HICC Oahu",
+      "mix": {
+        "oil": 0.8,
+        "biomass": 0,
+        "wind": 0,
+        "solar": 0.1,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 1489.5
+    },
+    "MROE": {
+      "name": "MRO East",
+      "mix": {
+        "coal": 0.4,
+        "oil": 0,
+        "gas": 0.4,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0
+      },
+      "co2RateLbPerMwh": 1397.3
+    },
+    "MROW": {
+      "name": "MRO West",
+      "mix": {
+        "coal": 0.4,
+        "oil": 0,
+        "gas": 0.1,
+        "nuclear": 0.1,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.4,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 920.1
+    },
+    "NEWE": {
+      "name": "NPCC New England",
+      "mix": {
+        "coal": 0,
+        "oil": 0,
+        "gas": 0.6,
+        "nuclear": 0.2,
+        "hydro": 0.1,
+        "biomass": 0,
+        "wind": 0,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 539.3
+    },
+    "NWPP": {
+      "name": "WECC Northwest",
+      "mix": {
+        "coal": 0.2,
+        "oil": 0,
+        "gas": 0.2,
+        "nuclear": 0,
+        "hydro": 0.4,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0,
+        "geothermal": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 631.7
+    },
+    "NYCW": {
+      "name": "NPCC NYC/Westchester",
+      "mix": {
+        "oil": 0,
+        "gas": 1,
+        "biomass": 0,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 864.5
+    },
+    "NYLI": {
+      "name": "NPCC Long Island",
+      "mix": {
+        "oil": 0,
+        "gas": 0.9,
+        "biomass": 0,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 1180.7
+    },
+    "NYUP": {
+      "name": "NPCC Upstate NY",
+      "mix": {
+        "oil": 0,
+        "gas": 0.3,
+        "nuclear": 0.3,
+        "hydro": 0.3,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 242.1
+    },
+    "PRMS": {
+      "name": "Puerto Rico Miscellaneous",
+      "mix": {
+        "coal": 0.2,
+        "oil": 0.4,
+        "gas": 0.4,
+        "hydro": 0,
+        "wind": 0,
+        "solar": 0
+      },
+      "co2RateLbPerMwh": 1543.1
+    },
+    "RFCE": {
+      "name": "RFC East",
+      "mix": {
+        "coal": 0,
+        "oil": 0,
+        "gas": 0.5,
+        "nuclear": 0.4,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 596.9
+    },
+    "RFCM": {
+      "name": "RFC Michigan",
+      "mix": {
+        "coal": 0.3,
+        "oil": 0,
+        "gas": 0.5,
+        "nuclear": 0.1,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 970.6
+    },
+    "RFCW": {
+      "name": "RFC West",
+      "mix": {
+        "coal": 0.3,
+        "oil": 0,
+        "gas": 0.4,
+        "nuclear": 0.3,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 911.4
+    },
+    "RMPA": {
+      "name": "WECC Rockies",
+      "mix": {
+        "coal": 0.3,
+        "oil": 0,
+        "gas": 0.3,
+        "hydro": 0.1,
+        "biomass": 0,
+        "wind": 0.3,
+        "solar": 0.1
+      },
+      "co2RateLbPerMwh": 1036.6
+    },
+    "SPNO": {
+      "name": "SPP North",
+      "mix": {
+        "coal": 0.3,
+        "oil": 0,
+        "gas": 0.1,
+        "nuclear": 0.1,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.4,
+        "solar": 0
+      },
+      "co2RateLbPerMwh": 862
+    },
+    "SPSO": {
+      "name": "SPP South",
+      "mix": {
+        "coal": 0.2,
+        "oil": 0,
+        "gas": 0.5,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.3,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 872
+    },
+    "SRMV": {
+      "name": "SERC Mississippi Valley",
+      "mix": {
+        "coal": 0.1,
+        "oil": 0,
+        "gas": 0.7,
+        "nuclear": 0.2,
+        "hydro": 0,
+        "biomass": 0,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 739.7
+    },
+    "SRMW": {
+      "name": "SERC Midwest",
+      "mix": {
+        "coal": 0.5,
+        "oil": 0,
+        "gas": 0.2,
+        "nuclear": 0.2,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0.1,
+        "solar": 0,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 1239.8
+    },
+    "SRSO": {
+      "name": "SERC South",
+      "mix": {
+        "coal": 0.1,
+        "oil": 0,
+        "gas": 0.6,
+        "nuclear": 0.2,
+        "hydro": 0,
+        "biomass": 0,
+        "solar": 0
+      },
+      "co2RateLbPerMwh": 842.3
+    },
+    "SRTV": {
+      "name": "SERC Tennessee Valley",
+      "mix": {
+        "coal": 0.3,
+        "oil": 0,
+        "gas": 0.3,
+        "nuclear": 0.3,
+        "hydro": 0.1,
+        "biomass": 0,
+        "solar": 0
+      },
+      "co2RateLbPerMwh": 898.1
+    },
+    "SRVC": {
+      "name": "SERC Virginia/Carolina",
+      "mix": {
+        "coal": 0.1,
+        "oil": 0,
+        "gas": 0.4,
+        "nuclear": 0.4,
+        "hydro": 0,
+        "biomass": 0,
+        "wind": 0,
+        "solar": 0.1,
+        "otherFossil": 0
+      },
+      "co2RateLbPerMwh": 593.4
+    }
+  }
+}

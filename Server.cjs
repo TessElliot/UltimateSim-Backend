@@ -812,7 +812,8 @@ app.get('/egrid', async (req, res) => {
             `SELECT id, name, state, lat, lon,
                     fuel_code AS "fuelCode", fuel_type AS "fuelType",
                     co2_metric_tons AS "co2MetricTons",
-                    mwh_gen AS "mwhGen", cap_mw AS "capMW"
+                    mwh_gen AS "mwhGen", cap_mw AS "capMW",
+                    subrgn
              FROM egrid_plants
              WHERE lat >= $1 AND lat < $2
                AND lon >= $3 AND lon < $4`,
@@ -827,6 +828,21 @@ app.get('/egrid', async (req, res) => {
         console.error('eGRID query error:', err.message);
         res.status(500).json({ error: err.message });
     }
+});
+
+// GET /egrid-subregions
+// Returns static eGRID subregion energy mix data (from egrid_subregions.json)
+let _cachedSubregions = null;
+app.get('/egrid-subregions', (req, res) => {
+    if (!_cachedSubregions) {
+        try {
+            const filePath = require('path').join(__dirname, 'egrid_subregions.json');
+            _cachedSubregions = JSON.parse(require('fs').readFileSync(filePath, 'utf8'));
+        } catch (err) {
+            return res.status(500).json({ error: 'egrid_subregions.json not found. Run extract_egrid_subregions.cjs first.' });
+        }
+    }
+    res.json(_cachedSubregions);
 });
 
 // =====================================================
