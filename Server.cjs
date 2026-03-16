@@ -76,6 +76,44 @@ pool.on('error', (err) => {
   console.error('PostgreSQL pool error:', err);
 });
 
+// Auto-migrate: add services_fetched column if missing
+pool.query(`ALTER TABLE bounding_boxes ADD COLUMN IF NOT EXISTS services_fetched TEXT`)
+  .then(() => console.log('✅ services_fetched column ready'))
+  .catch(err => console.warn('⚠️ services_fetched migration skipped:', err.message));
+
+// Service health probes — check upstream APIs before streaming starts
+app.get("/health/services", async (req, res) => {
+  const PROBE_TIMEOUT = 5000;
+  const probeWithTimeout = (url, label) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT);
+    return fetch(url, { signal: controller.signal })
+      .then(r => { clearTimeout(timeout); return { service: label, ok: r.ok }; })
+      .catch(() => { clearTimeout(timeout); return { service: label, ok: false }; });
+  };
+
+  const results = await Promise.allSettled([
+    probeWithTimeout(
+      'https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query?f=json&where=1%3D1&resultRecordCount=1&returnGeometry=false&outFields=OBJECTID',
+      'waterways'
+    ),
+    probeWithTimeout('https://api.opentopodata.org/v1/srtm90m?locations=0,0', 'elevation'),
+    probeWithTimeout('https://echogeo.epa.gov/arcgis/rest/services/ECHO/Facilities/MapServer/1?f=json', 'epa'),
+    probeWithTimeout('https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/US_Airport/FeatureServer/0?f=json', 'airports'),
+    pool.query('SELECT 1 FROM egrid_plants LIMIT 1')
+      .then(() => ({ service: 'egrid', ok: true }))
+      .catch(() => ({ service: 'egrid', ok: false }))
+  ]);
+
+  const status = {};
+  for (const result of results) {
+    const val = result.status === 'fulfilled' ? result.value : { service: 'unknown', ok: false };
+    status[val.service] = val.ok;
+  }
+  console.log('[Health] Service status:', JSON.stringify(status));
+  res.json(status);
+});
+
 app.get("/closestBbox", async (req, res) => {
     try {
         console.log("[closestBbox] Searching for closest bbox...");
@@ -286,7 +324,7 @@ app.post("/getTilesBatch", async (req, res) => {
     const placeholders = limitedIds.map((_, i) => `$${i + 1}`).join(',');
     const { rows } = await pool.query(
       `SELECT id, "landuseType", land_use_data, epa_data, has_epa_data, epa_fetch_date,
-              elevation, waterway_data, airport_data, egrid_data
+              elevation, waterway_data, airport_data, egrid_data, services_fetched
        FROM bounding_boxes
        WHERE id IN (${placeholders})`,
       limitedIds
@@ -323,6 +361,10 @@ app.post("/getTilesBatch", async (req, res) => {
         // Include eGRID data if present
         if (row.egrid_data) {
           tile.egridData = JSON.parse(row.egrid_data);
+        }
+        // Include services_fetched for cache recovery
+        if (row.services_fetched) {
+          tile.servicesFetched = row.services_fetched;
         }
         tilesMap[row.id] = tile;
       } catch (parseError) {
@@ -375,6 +417,7 @@ app.post("/saveTilesBatch", async (req, res) => {
     const waterwayDatas = [];
     const airportDatas = [];
     const egridDatas = [];
+    const servicesFetchedArr = [];
 
     for (const t of tiles) {
       ids.push(t.id);
@@ -391,6 +434,7 @@ app.post("/saveTilesBatch", async (req, res) => {
       waterwayDatas.push(t.waterway_data ? JSON.stringify(t.waterway_data) : null);
       airportDatas.push(t.airport_data ? JSON.stringify(t.airport_data) : null);
       egridDatas.push(t.egrid_data ? JSON.stringify(t.egrid_data) : null);
+      servicesFetchedArr.push(t.services_fetched || null);
     }
 
     // Build individual INSERT statements within a transaction for reliability
@@ -402,22 +446,25 @@ app.post("/saveTilesBatch", async (req, res) => {
         await client.query(
           `INSERT INTO bounding_boxes (
             id, "minLat", "minLon", "maxLat", "maxLon", "landuseType", land_use_data,
-            epa_data, has_epa_data, epa_fetch_date, elevation, waterway_data, airport_data, egrid_data
+            epa_data, has_epa_data, epa_fetch_date, elevation, waterway_data, airport_data, egrid_data,
+            services_fetched
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
           ON CONFLICT (id) DO UPDATE SET
             "landuseType" = EXCLUDED."landuseType",
             land_use_data = EXCLUDED.land_use_data,
-            epa_data = EXCLUDED.epa_data,
-            has_epa_data = EXCLUDED.has_epa_data,
-            epa_fetch_date = EXCLUDED.epa_fetch_date,
-            elevation = EXCLUDED.elevation,
-            waterway_data = EXCLUDED.waterway_data,
-            airport_data = EXCLUDED.airport_data,
-            egrid_data = EXCLUDED.egrid_data`,
+            epa_data = COALESCE(EXCLUDED.epa_data, bounding_boxes.epa_data),
+            has_epa_data = CASE WHEN EXCLUDED.epa_data IS NOT NULL THEN EXCLUDED.has_epa_data ELSE bounding_boxes.has_epa_data END,
+            epa_fetch_date = CASE WHEN EXCLUDED.epa_data IS NOT NULL THEN EXCLUDED.epa_fetch_date ELSE bounding_boxes.epa_fetch_date END,
+            elevation = COALESCE(EXCLUDED.elevation, bounding_boxes.elevation),
+            waterway_data = COALESCE(EXCLUDED.waterway_data, bounding_boxes.waterway_data),
+            airport_data = COALESCE(EXCLUDED.airport_data, bounding_boxes.airport_data),
+            egrid_data = COALESCE(EXCLUDED.egrid_data, bounding_boxes.egrid_data),
+            services_fetched = COALESCE(EXCLUDED.services_fetched, bounding_boxes.services_fetched)`,
           [ids[i], minLats[i], minLons[i], maxLats[i], maxLons[i], landuseTypes[i],
            landUseDatas[i], epaDatas[i], hasEpaDatas[i], epaFetchDates[i],
-           elevations[i], waterwayDatas[i], airportDatas[i], egridDatas[i]]
+           elevations[i], waterwayDatas[i], airportDatas[i], egridDatas[i],
+           servicesFetchedArr[i]]
         );
       }
 
@@ -434,6 +481,54 @@ app.post("/saveTilesBatch", async (req, res) => {
   } catch (error) {
     console.error("Error in /saveTilesBatch:", error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Lightweight endpoint: update only specific service data columns for existing tiles
+// Used for cache recovery after service outages
+app.post("/updateServiceData", async (req, res) => {
+  try {
+    const { tiles } = req.body;
+    if (!tiles || !Array.isArray(tiles) || tiles.length === 0) {
+      return res.status(400).json({ error: "Missing tiles array" });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const t of tiles) {
+        await client.query(
+          `UPDATE bounding_boxes SET
+            waterway_data = COALESCE($1, waterway_data),
+            elevation = COALESCE($2, elevation),
+            epa_data = COALESCE($3, epa_data),
+            airport_data = COALESCE($4, airport_data),
+            egrid_data = COALESCE($5, egrid_data),
+            services_fetched = $6
+          WHERE id = $7`,
+          [
+            t.waterway_data ? JSON.stringify(t.waterway_data) : null,
+            t.elevation !== undefined && t.elevation !== null ? t.elevation : null,
+            t.epa_data ? JSON.stringify(t.epa_data) : null,
+            t.airport_data ? JSON.stringify(t.airport_data) : null,
+            t.egrid_data ? JSON.stringify(t.egrid_data) : null,
+            t.services_fetched || null,
+            t.id
+          ]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      throw txError;
+    } finally {
+      client.release();
+    }
+
+    res.json({ success: true, count: tiles.length });
+  } catch (error) {
+    console.error("Error in /updateServiceData:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -600,7 +695,8 @@ app.post("/waterways", async (req, res) => {
 
     console.log(`🌊 Fetching waterways for bbox: ${bbox}`);
 
-    // Query all layers in parallel
+    // Query all layers in parallel with per-layer timeout
+    const LAYER_TIMEOUT_MS = 20000; // 20s per layer
     const requests = layers.map(layer => {
       const params = new URLSearchParams({
         f: 'json',
@@ -612,8 +708,10 @@ app.post("/waterways", async (req, res) => {
         outFields: layer.fields,
         returnGeometry: 'true'
       });
-      return fetch(`${baseUrl}/${layer.id}/query?${params}`)
-        .then(r => r.ok ? r.json() : { features: [] })
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), LAYER_TIMEOUT_MS);
+      return fetch(`${baseUrl}/${layer.id}/query?${params}`, { signal: controller.signal })
+        .then(r => { clearTimeout(timeout); return r.ok ? r.json() : { features: [] }; })
         .then(data => {
           // Tag each feature with its layer type
           if (data.features) {
@@ -621,7 +719,13 @@ app.post("/waterways", async (req, res) => {
           }
           return data;
         })
-        .catch(() => ({ features: [] }));
+        .catch(err => {
+          clearTimeout(timeout);
+          if (err.name === 'AbortError') {
+            console.warn(`⏱️ Waterway layer ${layer.name} (${layer.id}) timed out after ${LAYER_TIMEOUT_MS / 1000}s`);
+          }
+          return { features: [] };
+        });
     });
 
     const results = await Promise.all(requests);
