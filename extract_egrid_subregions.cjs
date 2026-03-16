@@ -49,6 +49,7 @@ const SRL_COLUMNS = {
     otherFossil:'SROFPR',       // Other fossil %
     otherUnk:   'SROTPR',       // Other unknown %
     co2Rate:    'SRCO2RTA',     // CO₂ emission rate (lb/MWh) — annual total output
+    co2eRate:   'SRC2ERTA',     // CO₂-equivalent emission rate (lb/MWh) — includes CH₄, N₂O
     netGenMwh:  'SRNGENAN',     // Annual net generation (MWh)
 };
 
@@ -162,11 +163,13 @@ function main() {
         }
 
         const co2Rate = parseFloat(row[SRL_COLUMNS.co2Rate]);
+        const co2eRate = parseFloat(row[SRL_COLUMNS.co2eRate]);
 
         subregions[code] = {
             name,
             mix,
             co2RateLbPerMwh: isNaN(co2Rate) ? null : Math.round(co2Rate * 10) / 10,
+            co2eRateLbPerMwh: isNaN(co2eRate) ? null : Math.round(co2eRate * 10) / 10,
         };
     }
 

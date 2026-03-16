@@ -1,5 +1,5 @@
 {
-  "generated": "2026-03-16T00:05:44.449Z",
+  "generated": "2026-03-16T01:59:07.148Z",
   "source": "EPA eGRID 2023",
   "count": 27,
   "subregions": {
@@ -13,7 +13,8 @@
         "biomass": 0,
         "wind": 0
       },
-      "co2RateLbPerMwh": 899.6
+      "co2RateLbPerMwh": 899.6,
+      "co2eRateLbPerMwh": 905.1
     },
     "AKMS": {
       "name": "ASCC Miscellaneous",
@@ -23,7 +24,8 @@
         "hydro": 0.7,
         "wind": 0
       },
-      "co2RateLbPerMwh": 520.5
+      "co2RateLbPerMwh": 520.5,
+      "co2eRateLbPerMwh": 522.4
     },
     "AZNM": {
       "name": "WECC Southwest",
@@ -37,7 +39,8 @@
         "solar": 0.1,
         "geothermal": 0
       },
-      "co2RateLbPerMwh": 703.7
+      "co2RateLbPerMwh": 703.7,
+      "co2eRateLbPerMwh": 706.2
     },
     "CAMX": {
       "name": "WECC California",
@@ -52,7 +55,8 @@
         "geothermal": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 428.5
+      "co2RateLbPerMwh": 428.5,
+      "co2eRateLbPerMwh": 430
     },
     "ERCT": {
       "name": "ERCOT All",
@@ -66,7 +70,8 @@
         "solar": 0.1,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 733.9
+      "co2RateLbPerMwh": 733.9,
+      "co2eRateLbPerMwh": 736.6
     },
     "FRCC": {
       "name": "FRCC All",
@@ -80,7 +85,8 @@
         "solar": 0.1,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 782.3
+      "co2RateLbPerMwh": 782.3,
+      "co2eRateLbPerMwh": 784.8
     },
     "HIMS": {
       "name": "HICC Miscellaneous",
@@ -92,7 +98,8 @@
         "solar": 0.1,
         "geothermal": 0.1
       },
-      "co2RateLbPerMwh": 1123.4
+      "co2RateLbPerMwh": 1123.4,
+      "co2eRateLbPerMwh": 1133.3
     },
     "HIOA": {
       "name": "HICC Oahu",
@@ -103,7 +110,8 @@
         "solar": 0.1,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 1489.5
+      "co2RateLbPerMwh": 1489.5,
+      "co2eRateLbPerMwh": 1498.9
     },
     "MROE": {
       "name": "MRO East",
@@ -116,7 +124,8 @@
         "wind": 0.1,
         "solar": 0
       },
-      "co2RateLbPerMwh": 1397.3
+      "co2RateLbPerMwh": 1397.3,
+      "co2eRateLbPerMwh": 1405
     },
     "MROW": {
       "name": "MRO West",
@@ -131,7 +140,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 920.1
+      "co2RateLbPerMwh": 920.1,
+      "co2eRateLbPerMwh": 926.6
     },
     "NEWE": {
       "name": "NPCC New England",
@@ -146,7 +156,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 539.3
+      "co2RateLbPerMwh": 539.3,
+      "co2eRateLbPerMwh": 543.2
     },
     "NWPP": {
       "name": "WECC Northwest",
@@ -162,7 +173,8 @@
         "geothermal": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 631.7
+      "co2RateLbPerMwh": 631.7,
+      "co2eRateLbPerMwh": 635.3
     },
     "NYCW": {
       "name": "NPCC NYC/Westchester",
@@ -173,7 +185,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 864.5
+      "co2RateLbPerMwh": 864.5,
+      "co2eRateLbPerMwh": 865.7
     },
     "NYLI": {
       "name": "NPCC Long Island",
@@ -184,7 +197,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 1180.7
+      "co2RateLbPerMwh": 1180.7,
+      "co2eRateLbPerMwh": 1189.3
     },
     "NYUP": {
       "name": "NPCC Upstate NY",
@@ -198,7 +212,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 242.1
+      "co2RateLbPerMwh": 242.1,
+      "co2eRateLbPerMwh": 242.8
     },
     "PRMS": {
       "name": "Puerto Rico Miscellaneous",
@@ -210,7 +225,8 @@
         "wind": 0,
         "solar": 0
       },
-      "co2RateLbPerMwh": 1543.1
+      "co2RateLbPerMwh": 1543.1,
+      "co2eRateLbPerMwh": 1548.5
     },
     "RFCE": {
       "name": "RFC East",
@@ -225,7 +241,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 596.9
+      "co2RateLbPerMwh": 596.9,
+      "co2eRateLbPerMwh": 599.2
     },
     "RFCM": {
       "name": "RFC Michigan",
@@ -239,7 +256,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 970.6
+      "co2RateLbPerMwh": 970.6,
+      "co2eRateLbPerMwh": 976
     },
     "RFCW": {
       "name": "RFC West",
@@ -254,7 +272,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 911.4
+      "co2RateLbPerMwh": 911.4,
+      "co2eRateLbPerMwh": 916.1
     },
     "RMPA": {
       "name": "WECC Rockies",
@@ -267,7 +286,8 @@
         "wind": 0.3,
         "solar": 0.1
       },
-      "co2RateLbPerMwh": 1036.6
+      "co2RateLbPerMwh": 1036.6,
+      "co2eRateLbPerMwh": 1042.5
     },
     "SPNO": {
       "name": "SPP North",
@@ -281,7 +301,8 @@
         "wind": 0.4,
         "solar": 0
       },
-      "co2RateLbPerMwh": 862
+      "co2RateLbPerMwh": 862,
+      "co2eRateLbPerMwh": 867.7
     },
     "SPSO": {
       "name": "SPP South",
@@ -295,7 +316,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 872
+      "co2RateLbPerMwh": 872,
+      "co2eRateLbPerMwh": 875.6
     },
     "SRMV": {
       "name": "SERC Mississippi Valley",
@@ -309,7 +331,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 739.7
+      "co2RateLbPerMwh": 739.7,
+      "co2eRateLbPerMwh": 741.7
     },
     "SRMW": {
       "name": "SERC Midwest",
@@ -324,7 +347,8 @@
         "solar": 0,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 1239.8
+      "co2RateLbPerMwh": 1239.8,
+      "co2eRateLbPerMwh": 1248.6
     },
     "SRSO": {
       "name": "SERC South",
@@ -337,7 +361,8 @@
         "biomass": 0,
         "solar": 0
       },
-      "co2RateLbPerMwh": 842.3
+      "co2RateLbPerMwh": 842.3,
+      "co2eRateLbPerMwh": 846
     },
     "SRTV": {
       "name": "SERC Tennessee Valley",
@@ -350,7 +375,8 @@
         "biomass": 0,
         "solar": 0
       },
-      "co2RateLbPerMwh": 898.1
+      "co2RateLbPerMwh": 898.1,
+      "co2eRateLbPerMwh": 903.3
     },
     "SRVC": {
       "name": "SERC Virginia/Carolina",
@@ -365,7 +391,8 @@
         "solar": 0.1,
         "otherFossil": 0
       },
-      "co2RateLbPerMwh": 593.4
+      "co2RateLbPerMwh": 593.4,
+      "co2eRateLbPerMwh": 596.3
     }
   }
 }
