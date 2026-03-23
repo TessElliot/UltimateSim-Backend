@@ -533,6 +533,42 @@ app.post("/updateServiceData", async (req, res) => {
   }
 });
 
+// One-time migration: strip a service from services_fetched where its data is null
+// Used to fix tiles saved during outages that incorrectly claimed success
+app.post("/resetServiceData", async (req, res) => {
+  try {
+    const { service } = req.body;
+    const VALID_SERVICES = {
+      waterway:  'waterway_data',
+      elevation: 'elevation',
+      epa:       'epa_data',
+      airport:   'airport_data',
+      egrid:     'egrid_data',
+    };
+
+    const column = VALID_SERVICES[service];
+    if (!column) {
+      return res.status(400).json({ error: `Invalid service. Valid: ${Object.keys(VALID_SERVICES).join(', ')}` });
+    }
+
+    // Remove the service name from the comma-separated services_fetched string
+    // for tiles where the corresponding data column is NULL
+    const { rowCount } = await pool.query(
+      `UPDATE bounding_boxes
+       SET services_fetched = TRIM(BOTH ',' FROM REPLACE(',' || services_fetched || ',', ',' || $1 || ',', ','))
+       WHERE ${column} IS NULL
+         AND services_fetched LIKE '%' || $1 || '%'`,
+      [service]
+    );
+
+    console.log(`🔧 Reset ${service}: updated ${rowCount} tiles`);
+    res.json({ updated: rowCount });
+  } catch (error) {
+    console.error("Error in /resetServiceData:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Check if a full map exists in database by lat/lon
 app.get("/checkMap", async (req, res) => {
   try {
