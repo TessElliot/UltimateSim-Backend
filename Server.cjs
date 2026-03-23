@@ -83,7 +83,7 @@ pool.query(`ALTER TABLE bounding_boxes ADD COLUMN IF NOT EXISTS services_fetched
 
 // Service health probes — check upstream APIs before streaming starts
 app.get("/health/services", async (req, res) => {
-  const PROBE_TIMEOUT = 5000;
+  const PROBE_TIMEOUT = 15000;
   const probeWithTimeout = (url, label) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT);
@@ -93,8 +93,9 @@ app.get("/health/services", async (req, res) => {
   };
 
   const results = await Promise.allSettled([
+    // Use a real bbox query (tiny area) to test query engine, not just metadata
     probeWithTimeout(
-      'https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query?f=json&where=1%3D1&resultRecordCount=1&returnGeometry=false&outFields=OBJECTID',
+      'https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query?f=json&geometry=-74.01,40.70,-74.00,40.71&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&returnGeometry=false&outFields=OBJECTID&resultRecordCount=1',
       'waterways'
     ),
     probeWithTimeout('https://api.opentopodata.org/v1/srtm90m?locations=0,0', 'elevation'),
