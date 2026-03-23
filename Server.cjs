@@ -505,7 +505,8 @@ app.post("/updateServiceData", async (req, res) => {
             epa_data = COALESCE($3, epa_data),
             airport_data = COALESCE($4, airport_data),
             egrid_data = COALESCE($5, egrid_data),
-            services_fetched = $6
+            services_fetched = $6,
+            "landuseType" = COALESCE($8, "landuseType")
           WHERE id = $7`,
           [
             t.waterway_data ? JSON.stringify(t.waterway_data) : null,
@@ -514,7 +515,8 @@ app.post("/updateServiceData", async (req, res) => {
             t.airport_data ? JSON.stringify(t.airport_data) : null,
             t.egrid_data ? JSON.stringify(t.egrid_data) : null,
             t.services_fetched || null,
-            t.id
+            t.id,
+            t.landuseType || null
           ]
         );
       }
