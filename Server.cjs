@@ -42,6 +42,24 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", uptime: process.uptime() });
 });
 
+// Temporary endpoint: database size info
+app.get("/db-size", async (req, res) => {
+  try {
+    const dbSize = await pool.query("SELECT pg_size_pretty(pg_database_size(current_database())) AS total_size");
+    const tableSizes = await pool.query(`
+      SELECT relname AS table_name,
+             pg_size_pretty(pg_total_relation_size(relid)) AS total_size,
+             pg_size_pretty(pg_relation_size(relid)) AS data_size,
+             pg_size_pretty(pg_total_relation_size(relid) - pg_relation_size(relid)) AS index_size
+      FROM pg_catalog.pg_statio_user_tables
+      ORDER BY pg_total_relation_size(relid) DESC
+    `);
+    res.json({ database: dbSize.rows[0].total_size, tables: tableSizes.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // JSON payload size limit (keep reasonable for Render's 512MB RAM)
 app.use(express.json({ limit: "10mb" }));
 
@@ -481,6 +499,27 @@ app.post("/saveTilesBatch", async (req, res) => {
     res.json({ success: true, count: tiles.length });
   } catch (error) {
     console.error("Error in /saveTilesBatch:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// One-time cleanup: delete tiles with a specific landuseType
+app.delete("/deleteTilesByType", async (req, res) => {
+  try {
+    const { landuseType } = req.query;
+    if (!landuseType) {
+      return res.status(400).json({ error: "Missing landuseType query parameter" });
+    }
+
+    const { rowCount } = await pool.query(
+      `DELETE FROM bounding_boxes WHERE "landuseType" = $1`,
+      [landuseType]
+    );
+
+    console.log(`🗑️ Deleted ${rowCount} tiles with landuseType="${landuseType}"`);
+    res.json({ success: true, deleted: rowCount });
+  } catch (error) {
+    console.error("Error in /deleteTilesByType:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
