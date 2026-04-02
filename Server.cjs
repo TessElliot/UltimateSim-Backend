@@ -1001,6 +1001,11 @@ app.get('/egrid', async (req, res) => {
                AND lon >= $3 AND lon < $4`,
             [minLat, maxLat, minLon, maxLon]
         );
+        // pg returns BIGINT columns as strings — coerce to numbers
+        for (const r of rows) {
+            if (r.co2MetricTons != null) r.co2MetricTons = Number(r.co2MetricTons);
+            if (r.mwhGen != null) r.mwhGen = Number(r.mwhGen);
+        }
         res.json({ plants: rows });
     } catch (err) {
         // Table may not exist yet (before migration runs)
